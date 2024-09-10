@@ -1,0 +1,53 @@
+/* Product list container with CSS grid */
+ul.product-list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 products per row */
+    gap: 20px; /* Spacing between items */
+    padding: 0;
+    list-style-type: none;
+    margin: 40px auto;
+    max-width: 1000px; /* Limit max width for better alignment */
+}
+
+/* Style each product item */
+ul.product-list li {
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 5px rgb(247, 6, 6);
+}
+
+/* Style the product image */
+ul.product-list li img {
+    width: 100%; /* Fill the container */
+    height: 150px; /* Fixed height for consistency */
+    object-fit: cover; /* Maintain aspect ratio and crop excess */
+    border-radius: 5px;
+}
+
+/* Style the product title */
+ul.product-list li h1 {
+    font-size: 1.2rem;
+    margin: 10px 0;
+}
+
+/* Style the price */
+ul.product-list li p {
+    font-size: 1rem;
+    color: #555;
+}
+
+/* Make it responsive for smaller screens */
+@media (max-width: 768px) {
+    ul.product-list {
+        grid-template-columns: repeat(2, 1fr); /* 2 products per row on smaller screens */
+    }
+}
+
+@media (max-width: 480px) {
+    ul.product-list {
+        grid-template-columns: 1fr; /* 1 product per row on very small screens */
+    }
+}

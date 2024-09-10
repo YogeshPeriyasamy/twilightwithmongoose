@@ -1,0 +1,63 @@
+body {
+    padding: 0;
+    margin: 0;
+}
+
+.main_header {
+    width: auto;
+    height: 2rem;
+    padding: 20px;
+    background-color: rgb(63, 212, 212);
+}
+
+.headers {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.headers a {
+    color: rgb(23, 8, 115);
+    text-decoration: none;
+    margin: 0 1.5rem;
+    font-size: 25px;
+    font-family: 'Times New Roman', Times, serif;
+    font-weight: bold;
+    object-fit: cover;
+}
+
+.headers a:hover {
+    color: black;
+}
+
+.headers a:active,
+.headers a.active {
+    color: black;
+    background-color: white;
+}
+
+/* Style the p tags in .carttotal similar to a tags */
+.carttotal p {
+    color: rgb(202, 83, 15);
+    text-decoration: none;
+    margin: 0 1rem;
+    font-size: 25px;
+    font-family: 'Times New Roman', Times, serif;
+    font-weight: bold;
+    object-fit: cover;
+    display: inline;
+}
+
+/* Add space between the a and p tags */
+.headers a + .carttotal {
+    margin-left: 3rem; /* Adjust the margin to create the desired space */
+}
+
+/* If you need space between the a and the entire carttotal div */
+.headers .carttotal {
+    margin-left: 3rem; /* Creates distance between the last <a> and the <p> tags */
+}
+
+
+
+

@@ -1,0 +1,10 @@
+.home_body{
+    border: 0;
+    margin-top:0;
+    height:604px;
+    background-image: url("https://media.istockphoto.com/id/1277731041/photo/retail-and-technology-retail-as-a-service.jpg?s=2048x2048&w=is&k=20&c=LqMODzv79ZD-ohjKDJYsa44bZfIb7xp0WJ4_4VCk08Q=");
+    padding:15px;
+    text-align: center;
+    font-size: 50px;
+    color: rgb(15, 13, 13);
+}

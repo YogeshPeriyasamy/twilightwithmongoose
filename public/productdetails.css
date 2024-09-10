@@ -1,0 +1,13 @@
+.product_list{
+    display: grid;
+    padding: 0;
+    margin: 40px auto;
+    max-width: 400px;
+    text-align: center;
+}
+.product_list img {
+    width: 90%; /* Fill the container */
+    height: 400px; /* Fixed height for consistency */
+    object-fit: cover; /* Maintain aspect ratio and crop excess */
+    border-radius: 5px;
+}

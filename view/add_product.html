@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add product</title>
+    <link rel="stylesheet" href="/addproductpage.css">
+</head>
+<body>
+    <h1>Add Product</h1>
+    <form action="/twilight/add-product" method="POST">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name">
+        <label for="description">Description:</label>
+        <textarea id="description" name="description"></textarea>
+        <label for="urlInput">Enter a URL:</label>
+        <input type="url" id="urlInput" name="urlInput">
+        <label for="price">Price:</label>
+        <input type="text" id="price" name="price">
+        <button type="submit">Add product</button> 
+    </form>
+</body>
+</html>
