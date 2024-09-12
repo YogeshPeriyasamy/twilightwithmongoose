@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add product</title>
+    <link rel="stylesheet" href="/addproductpage.css">
+</head>
+<body>
+    <h1>Update Product</h1>
+    <form action="/twilight/edit&add-product" method="POST">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name">
+        <label for="description">Description:</label>
+        <textarea id="description" name="description"></textarea>
+        <label for="urlInput">Enter a URL:</label>
+        <input type="url" id="urlInput" name="urlInput">
+        <label for="price">Price:</label>
+        <input type="text" id="price" name="price">
+        <input type="hidden" id="id" name="id" value="">
+        <button type="submit">Update </button> 
+    </form>
+    <script>
+        //function to get the id from query param
+        function getquery(param){
+            const urlparam=new URLSearchParams(window.location.search);
+            return urlparam.get(param);
+        }
+        const productid=getquery('editid')
+        if(productid){
+            fetch(`/twilight/geteditproduct/${productid}`)
+            .then(response=>response.json())
+            .then(data=>{
+                document.getElementById("name").value=data.name;
+                document.getElementById("description").value=data.description;
+                document.getElementById("urlInput").value=data.urlInput;
+                document.getElementById("price").value=data.price;
+                document.getElementById("id").value=data.id;
+            }) 
+            .catch(error => console.error('Error fetching product data:', error));
+        }
+        
+    </script>
+</body>
+</html>

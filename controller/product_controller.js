@@ -16,7 +16,6 @@ exports.add_productform=(req,res,next)=>{
 //add product to backend
 exports.add_product=(req,res,next)=>{
     const{name,description,urlInput,price}=req.body;
-    console.log(name,description,urlInput,price);
     model_router.add_product(name,description,urlInput,price);
     res.redirect('/twilight/products');
 }
@@ -33,6 +32,7 @@ exports.showproductlist = (req, res, next) => {
             <h1>${product.name}</h1>
             <p>${product.price} Rs</p> 
             <a href="/twilight/product_deatils/${product.id}">Details</a>
+            <a href="/twilight/edit_product?editid=${product.id}">Edit product</a>
         </li>`;
     });
 
@@ -100,6 +100,7 @@ exports.showproductdetails=(req, res, next) =>{
             <input type="hidden" name="price" value="${product.price}">
             <input type="hidden" name="name" value="${product.name}">
             <button class="btn"> Add to cart<button>
+            <button type="button" onclick="window.location.href='/twilight/delete_product/${product.id}'">Delete</button>
         </form>    
     </div>
     </body>
@@ -138,6 +139,7 @@ exports.cart_page=(req,res,next)=>{
             <img src="${product.urlInput}" alt="${product.name}">
             <h1>${product.name}</h1>
             <p>${product.price} Rs</p> 
+            <p>qty : ${product.qty}</p>
        </li>`;
     });
     const html = `
@@ -172,3 +174,27 @@ exports.cart_page=(req,res,next)=>{
     res.send(html);
 }
 
+
+//to go t the edit details page
+
+exports.editdetailspage=(req,res,next)=>{
+    const toeditproduct=model_router.getproductbyid(req.params.editid);
+    res.json(toeditproduct);
+   
+}
+
+// to update the edited product from the editproduct.html
+exports.update_editedproduct=(req,res,next)=>{
+    const{name,description,urlInput,price,id}=req.body;
+    model_router.edit_product(name,description,urlInput,price,id)
+    res.redirect('/twilight/products');
+}
+
+
+// to delete a product
+exports.delete_product=(req,res,next)=>{
+    const delete_id=req.params.deleteid;
+    model_router.delete_product(delete_id);
+    cartmodel_router.delete_product(delete_id);
+    res.redirect('/twilight/products');
+}

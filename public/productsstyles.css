@@ -39,6 +39,14 @@ ul.product-list li p {
     color: #555;
 }
 
+/* style the a  */
+ul.product-list li a {
+    font-size: 1rem;
+    color: #011f14;
+    text-decoration: none;
+    margin: 10px;
+}
+
 /* Make it responsive for smaller screens */
 @media (max-width: 768px) {
     ul.product-list {
