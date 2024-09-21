@@ -1,7 +1,10 @@
-const path=require("path");
+ const path=require("path");
  
 //creating a model routes
 const model_router=require('../model/product_model');
+
+// connecting model page of sequel with the controller
+const sequel_model=require('../model/sequelizingmodel');
 
 exports.gethome=(req,res,next)=>{
     res.sendFile(path.join(__dirname,'../view/home.html'));
@@ -16,15 +19,28 @@ exports.add_productform=(req,res,next)=>{
 //add product to backend
 exports.add_product=(req,res,next)=>{
     const{name,description,urlInput,price}=req.body;
-    model_router.add_product(name,description,urlInput,price);
-    res.redirect('/twilight/products');
+    // model_router.add_product(name,description,urlInput,price).then(()=>{res.redirect('/twilight/products');})
+    // .catch(err=>console.log(err));
+    // sequel_model.create({
+    req.user.createProduct({    
+        name:name,
+        price:price,
+        description:description,
+        urlInput:urlInput
+    }).then(()=>res.redirect('/twilight/products'))
+    .catch((err)=>console.log(err))
+    
 }
 
 //to go to the productlist page
 
-exports.showproductlist = (req, res, next) => {
-    const products = model_router.getallproducts();
+exports.showproductlist = async(req, res, next) => {
     let productlistHTML = "";
+// model_router.getallproducts()
+await sequel_model.findAll()
+.then(rows=>{
+     const products = rows;
+  
     products.forEach(product => {
         productlistHTML += `
         <li>
@@ -35,6 +51,8 @@ exports.showproductlist = (req, res, next) => {
             <a href="/twilight/edit_product?editid=${product.id}">Edit product</a>
         </li>`;
     });
+    
+
 
     const html = `
     <!DOCTYPE html>
@@ -62,13 +80,20 @@ exports.showproductlist = (req, res, next) => {
     </html>`;
 
     res.send(html);
+})
+.catch(err=>console.log(err))
+
 };
 
 
 // to get to product details page
-exports.showproductdetails=(req, res, next) =>{
-    const product=model_router.getproductbyid(req.params.id);
-    if(product){
+exports.showproductdetails=async(req, res, next) =>{
+    // model_router.getproductbyid(req.params.id)
+    await sequel_model.findAll({where:{id:req.params.id}})
+    .then(data=>{
+       let product=data[0];
+       //console.log("frrororonnrnnnbsbsb",product);
+       if(product){
         const html=`
          <!DOCTYPE html>
     <html lang="en">
@@ -111,23 +136,29 @@ exports.showproductdetails=(req, res, next) =>{
     else{
         res.status(404).send("page not found");
     }
+    })
+    .catch(err=>console.log(err))
+   
 }
 
 
 //create a path to the cartmodel
 const cartmodel_router=require('../model/cartmodel');
+const { where } = require("sequelize");
 // to add cart product to the backend
 exports.add_cartproduct=(req,res,next)=>{
     const{id,name,urlInput,price}=req.body;
-    console.log(id,name,urlInput,price);
-    cartmodel_router.add_cart(id,name,urlInput,price);
-    res.redirect('/twilight/cart');
+    
+    cartmodel_router.add_cart(id,name,urlInput,price)
+    .then(()=>res.redirect('/twilight/cart'))
+    .catch(err=>console.log(err));
+    
 }
 
 // designing the cart page
-exports.cart_page=(req,res,next)=>{
-    const product=cartmodel_router.getallproducts();
-   
+exports.cart_page=async(req,res,next)=>{
+    const product=await cartmodel_router.getallproducts();
+   console.log(product);
     let cart_products=product.cart_products;
     let totalprice=product.totalprice;
     let totalproducts=product.totalproducts;
@@ -178,23 +209,43 @@ exports.cart_page=(req,res,next)=>{
 //to go t the edit details page
 
 exports.editdetailspage=(req,res,next)=>{
-    const toeditproduct=model_router.getproductbyid(req.params.editid);
-    res.json(toeditproduct);
+    // const toeditproduct=model_router.getproductbyid(req.params.editid);
+    // sequel_model.findAll({where:{id:req.params.editid}})
+    req.user.getProducts({where:{id:req.params.editid}})//to get the user product with the product id
+    .then(toeditproduct=> res.json(toeditproduct[0]))
+    .catch(err=>console.log(err));
    
 }
 
 // to update the edited product from the editproduct.html
 exports.update_editedproduct=(req,res,next)=>{
     const{name,description,urlInput,price,id}=req.body;
-    model_router.edit_product(name,description,urlInput,price,id)
-    res.redirect('/twilight/products');
+    console.log(name,description,urlInput,price,id);
+    // model_router.edit_product(name,description,urlInput,price,id)
+    sequel_model.findOne({where:{id:id}})
+    .then(product=>{
+        
+        product.name=name;
+        product.description=description;
+        product.urlInput=urlInput;
+        product.price=price;
+        product.id=id;
+        return product.save()
+    })
+    .then((result)=>{
+        res.redirect('/twilight/products');
+    })
+    .catch(err=>console.log(err));
+    
 }
 
 
 // to delete a product
 exports.delete_product=(req,res,next)=>{
     const delete_id=req.params.deleteid;
-    model_router.delete_product(delete_id);
-    cartmodel_router.delete_product(delete_id);
-    res.redirect('/twilight/products');
+    // model_router.delete_product(delete_id);
+    // cartmodel_router.delete_product(delete_id);
+    sequel_model.destroy({where:{id:delete_id}})
+    .then(()=>res.redirect('/twilight/products'))
+    .catch((err)=>consoele.log(err))
 }

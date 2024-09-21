@@ -1,34 +1,47 @@
-let cart_products=[];
-let totalprice=0;
-let totalproducts=0;
-//backend data
-function add_cart(id,name,urlInput,price){
-    let product;
-    let qty=0;
-    let alreadyexist=cart_products.findIndex(ele=>ele.id==id);
-    //console.log(alreadyexist,cart_products[alreadyexist].qty);
-    if(alreadyexist!==-1)
-    {
-        cart_products[alreadyexist].qty+=1;
+// let cart_products=[];
+const db = require('../util/database');
+let totalprice = 0;
+let totalproducts = 0;
+
+// Backend data
+async function add_cart(id, name, urlInput, price) {
+    let alreadyexist;
+    let qty = 0;
+
+    // Check if the product already exists in the cart
+    const [existingProduct] = await db.execute('SELECT qty FROM cart WHERE id = ?', [id]);
+
+    if (existingProduct.length > 0) {
+        // Product exists, update its quantity
+        alreadyexist = existingProduct[0].qty + 1;
         totalprice += parseInt(price);
+        totalproducts += 1;
+        return db.execute('UPDATE cart SET qty = ? WHERE id = ?', [alreadyexist, id]);
+    } else {
+        // Product doesn't exist, insert it into the cart
+        totalprice += parseInt(price);
+        totalproducts += 1;
+        return db.execute('INSERT INTO cart (id,name, price, urlInput, qty) VALUES (?,?, ?, ?, ?)', [id,name, price, urlInput, 1]);
     }
-    else{
-        qty=1;
-        product={id,name,urlInput,price: parseInt(price),qty};
-        cart_products.push(product);
-        totalprice =(totalprice+ product.price);
-    }
-    
-    
-    totalproducts+=1;
-    console.log(product,totalprice,totalproducts);
 }
 
-// to get all the products
-function getallproducts()
-{
-    return ({cart_products,totalprice,totalproducts});
+// To get all the products
+function getallproducts() {
+    return db.execute('SELECT * FROM cart')
+        .then(([rows, field_data]) => {
+            return {
+                cart_products: rows,
+                totalprice: totalprice,
+                totalproducts: totalproducts
+            };
+        })
+        .catch(error => {
+            console.error("Error fetching products:", error);
+            throw error;
+        });
 }
+
+
 
 // to delete a product from the cart
 function delete_product(deleteid){
