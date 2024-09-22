@@ -5,6 +5,7 @@ const model_router=require('../model/product_model');
 
 // connecting model page of sequel with the controller
 const sequel_model=require('../model/sequelizingmodel');
+const { where } = require("sequelize");
 
 exports.gethome=(req,res,next)=>{
     res.sendFile(path.join(__dirname,'../view/home.html'));
@@ -143,66 +144,117 @@ exports.showproductdetails=async(req, res, next) =>{
 
 
 //create a path to the cartmodel
-const cartmodel_router=require('../model/cartmodel');
-const { where } = require("sequelize");
+// const cartmodel_router=require('../model/cartmodel');
+
 // to add cart product to the backend
 exports.add_cartproduct=(req,res,next)=>{
     const{id,name,urlInput,price}=req.body;
     
-    cartmodel_router.add_cart(id,name,urlInput,price)
-    .then(()=>res.redirect('/twilight/cart'))
-    .catch(err=>console.log(err));
-    
+    // cartmodel_router.add_cart(id,name,urlInput,price)
+    // .then(()=>res.redirect('/twilight/cart'))
+    // .catch(err=>console.log(err));
+    let fetchedcart;
+    let newqty;
+    req.user.getCart()
+    .then(cart => {
+        fetchedcart = cart;
+        return cart.getProducts({ where: { id: id } });
+    })
+    .then(products => {
+        let product;
+        if (products.length > 0) {
+            product = products[0];
+        }
+        if (product) {
+            // If the product exists, increase the quantity
+            let oldqty = product.cartitem.qty; 
+            console.log("oldqty :",oldqty);
+            newqty = oldqty + 1;
+
+            // Update the existing cart item quantity
+            // return fetchedcart.addProduct(product, { through: { qty: newqty } });
+            return product.cartitem.update({ qty: newqty });
+        } else {
+            // If the product does not exist in the cart, fetch it from the user products
+            return req.user.getProducts({ where: { id: id } });
+        }
+    })
+    .then(products => {
+        if (products) {
+            let product = products[0];
+            // Add the new product to the cart with a quantity of 1
+            return fetchedcart.addProduct(product, { through: { qty: 1 } });
+        }
+    })
+    .then(() => {
+        res.redirect('/twilight/cart');
+    })
+    .catch(err => console.log(err));
+
 }
+
+
 
 // designing the cart page
 exports.cart_page=async(req,res,next)=>{
-    const product=await cartmodel_router.getallproducts();
-   console.log(product);
-    let cart_products=product.cart_products;
-    let totalprice=product.totalprice;
-    let totalproducts=product.totalproducts;
-    console.log(cart_products,totalprice,totalproducts);
-    let productlistHTML = "";
-    cart_products.forEach(product => {
-        productlistHTML += `
-        <li>
-            <img src="${product.urlInput}" alt="${product.name}">
-            <h1>${product.name}</h1>
-            <p>${product.price} Rs</p> 
-            <p>qty : ${product.qty}</p>
-       </li>`;
-    });
-    const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Products list</title>
-         <link rel="stylesheet" href="/navigation.css">
-        <link rel="stylesheet" href="/productsstyles.css">
-    </head>
-    <body>
-    <div class="main_header">
-        <nav class="headers">
-            <a href="/twilight/home">Home</a>
-            <a href="/twilight/products">Products</a>
-            <a href="/twilight/add-product">Add Product</a>
-            <a href="/twilight/cart">My cart</a>
-            <a href="/twilight/orders">Orders</a>
-            <div class="carttotal">
-            <p>Total price : ${totalprice}</p>
-            <p>Total products : ${totalproducts}</p>
-            </div>
-        </nav>
-    </div>
-    <ul class="product-list">${productlistHTML}</ul>
-    <a href='/twilight/add-product'>Go to add products</a>
-    </body>
-    </html>`;
-
-    res.send(html);
+//     const product=await cartmodel_router.getallproducts();
+//    console.log(product);
+//     let cart_products=product.cart_products;
+//     let totalprice=product.totalprice;
+//     let totalproducts=product.totalproducts;
+//     console.log(cart_products,totalprice,totalproducts);
+req.user.getCart()
+    .then(cart => {
+        console.log("Cart:", cart);
+        return cart.getProducts();
+    })
+    .then(products_cart => {
+        // console.log("Products in cart:", products_cart);
+        // let products = products_cart[0];
+        // console.log("First product:", products);
+        console.log(products_cart);
+        let productlistHTML = "";
+        products_cart.forEach(product => {
+            quantity=product.cartitem.qty;
+            productlistHTML += `
+            <li>
+                <img src="${product.urlInput}" alt="${product.name}">
+                <h1>${product.name}</h1>
+                <p>${product.price} Rs</p> 
+                <p>qty : ${quantity}</p>
+           </li>`;
+        });
+        const html = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Products list</title>
+             <link rel="stylesheet" href="/navigation.css">
+            <link rel="stylesheet" href="/productsstyles.css">
+        </head>
+        <body>
+        <div class="main_header">
+            <nav class="headers">
+                <a href="/twilight/home">Home</a>
+                <a href="/twilight/products">Products</a>
+                <a href="/twilight/add-product">Add Product</a>
+                <a href="/twilight/cart">My cart</a>
+                <a href="/twilight/orders">Orders</a>
+                <div class="carttotal">
+                
+                </div>
+            </nav>
+        </div>
+        <ul class="product-list">${productlistHTML}</ul>
+        <a href='/twilight/add-product'>Go to add products</a>
+        </body>
+        </html>`;
+    
+        res.send(html);
+    })
+    .catch(err => console.log(err));  
 }
 
 
@@ -245,7 +297,18 @@ exports.delete_product=(req,res,next)=>{
     const delete_id=req.params.deleteid;
     // model_router.delete_product(delete_id);
     // cartmodel_router.delete_product(delete_id);
-    sequel_model.destroy({where:{id:delete_id}})
+    // sequel_model.destroy({where:{id:delete_id}})
+    // .then(()=>res.redirect('/twilight/products'))
+    // .catch((err)=>consoele.log(err))
+    req.user.getProducts({where : {id:delete_id}})
+    .then(products=>{
+        if(products.length>0){
+            return products[0].destroy();
+        }
+        else{
+            res.redirect('/twilight/products')
+        }
+    })
     .then(()=>res.redirect('/twilight/products'))
-    .catch((err)=>consoele.log(err))
+    .catch(err=>console.log(err))
 }

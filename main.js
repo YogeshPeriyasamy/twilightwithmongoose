@@ -6,6 +6,8 @@ const app = express();
 const sequelize=require('./util/database')
 const productdb = require('./model/sequelizingmodel');
 const userdb=require('./model/sequelizeusermodel');
+const cart=require('./model/sequelizecartmodel');
+const cartitem=require('./model/sequelizecartitemmodel');
 //middleware to parse the body ,from form to req.body as key value pair
 app.use(express.urlencoded({ extended: true }));
 
@@ -18,7 +20,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use((req,res,next)=>{
     userdb.findByPk(1)
     .then(user=>{
-        console.log("user form db",user);
+        // console.log("user form db",user);
         req.user=user;
         next();
     })
@@ -34,6 +36,12 @@ app.use("/twilight", router_path);
 
 productdb.belongsTo(userdb);
 userdb.hasMany(productdb);
+userdb.hasOne(cart);
+cart.belongsTo(userdb);
+cart.belongsToMany(productdb,{through:cartitem});
+productdb.belongsToMany(cart,{through:cartitem});
+
+
 sequelize.sync({force:true})
 .then(res=>{
     return userdb.findByPk(1)
@@ -49,7 +57,12 @@ sequelize.sync({force:true})
 })
 .then(user=>{
     console.log("user has been created");
-    app.listen(3000);
+    //to create a cart for the user
+    return user.createCart()
+    
+})
+.then(cart=>{
+    app.listen(3000,'0.0.0.0');
 })
 .catch(err=>console.log(err))
 //start the server
