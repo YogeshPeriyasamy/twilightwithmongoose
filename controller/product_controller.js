@@ -2,8 +2,10 @@
  const mongodb=require("mongodb");
  const ObjectId=mongodb.ObjectId;
 
+
 // connecting model page of sequel with the controller
 const Product=require('../model/sequelizingmodel');
+const User=require('../model/sequelizeusermodel');
 // const { where } = require("sequelize");
 
 exports.gethome=(req,res,next)=>{
@@ -20,7 +22,8 @@ exports.add_productform=(req,res,next)=>{
 exports.add_product=(req,res,next)=>{
     const{name,description,imageURL,price}=req.body;
     //console.log(name,description,imageURL,price);
-    const product=new Product(name,price,description,imageURL)
+    console.log("checking req.user", req.session.userid);
+    const product=new Product(name,price,description,imageURL,null, req.session.userid)
     product.save()
     .then(()=>res.redirect('/twilight/products'))
     .catch((err)=>console.log(err))
@@ -114,7 +117,7 @@ exports.showproductdetails=async(req, res, next) =>{
         <p><strong>Description:</strong>${product.description}</p> 
         <p><strong>Price:</strong>${product.price} Rs</p>
         <form action="/twilight/addtocart" method="post">
-            <input type="hidden" name="id" value="${product._id}">
+            <input type="hidden" name="_id" value="${product._id}">
             <input type="hidden" name="urlInput" value="${product.imageURL}">
             <input type="hidden" name="price" value="${product.price}">
             <input type="hidden" name="name" value="${product.name}">
@@ -136,119 +139,98 @@ exports.showproductdetails=async(req, res, next) =>{
 }
 
 
-// //create a path to the cartmodel
-// // const cartmodel_router=require('../model/cartmodel');
+ // to add cart product to the backend
+exports.add_cartproduct=async(req,res,next)=>{
+    const{_id,name,urlInput,price}=req.body;
+    console.log("product to cart",_id);
+    let user = await User.findById('675a7a1dfa7fe799b083f531');
+    console.log("to cart add",user);
+    let newuserinstance=await new User(user.name,user.email,user.cart,user._id);
+    newuserinstance.addandupdatecart(_id)
+    .then((result)=>{
+        console.log("product added");
+        res.redirect('/twilight/cart')
+    })
+    .catch(err=>{
+        console.log(err);
+    })
+}
 
-// // to add cart product to the backend
-// exports.add_cartproduct=(req,res,next)=>{
-//     const{id,name,urlInput,price}=req.body;
-    
-//     // cartmodel_router.add_cart(id,name,urlInput,price)
-//     // .then(()=>res.redirect('/twilight/cart'))
-//     // .catch(err=>console.log(err));
-//     let fetchedcart;
-//     let newqty;
-//     req.user.getCart()
-//     .then(cart => {
-//         fetchedcart = cart;
-//         return cart.getProducts({ where: { id: id } });
-//     })
-//     .then(products => {
-//         let product;
-//         if (products.length > 0) {
-//             product = products[0];
-//         }
-//         if (product) {
-//             // If the product exists, increase the quantity
-//             let oldqty = product.cartitem.qty; 
-//             console.log("oldqty :",oldqty);
-//             newqty = oldqty + 1;
+//Controller function to get cart products for a specific user
+exports.getCartProducts = async (req, res) => {
+  try {
+    // const userId = req.params.userId; // Assume user ID is passed in the route parameter
 
-//             // Update the existing cart item quantity
-//             // return fetchedcart.addProduct(product, { through: { qty: newqty } });
-//             return product.cartitem.update({ qty: newqty });
-//         } else {
-//             // If the product does not exist in the cart, fetch it from the user products
-//             return req.user.getProducts({ where: { id: id } });
-//         }
-//     })
-//     .then(products => {
-//         if (products) {
-//             let product = products[0];
-//             // Add the new product to the cart with a quantity of 1
-//             return fetchedcart.addProduct(product, { through: { qty: 1 } });
-//         }
-//     })
-//     .then(() => {
-//         res.redirect('/twilight/cart');
-//     })
-//     .catch(err => console.log(err));
+    // Fetch the user with their cart details
+    const user = await User.findById('675a7a1dfa7fe799b083f531'); // Adjust if using a custom method for User
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-// }
+    const productIds = user.cart.items.map(item => item.prodId);
 
+    // Fetch the products that match the IDs
+    const db = require('../util/database').getdb();
+    const products = await db
+      .collection('products')
+      .find({ _id: { $in: productIds.map(id => new ObjectId(id)) } })
+      .toArray();
 
+    // Attach quantities to the products
+    const cartProducts = products.map(product => {
+      const cartItem = user.cart.items.find(item => item.prodId.toString() === product._id.toString());
+      return {
+        ...product,
+        quantity: cartItem.quantity,
+      };
+    });
 
-// // designing the cart page
-// exports.cart_page=async(req,res,next)=>{
-// //     const product=await cartmodel_router.getallproducts();
-// //    console.log(product);
-// //     let cart_products=product.cart_products;
-// //     let totalprice=product.totalprice;
-// //     let totalproducts=product.totalproducts;
-// //     console.log(cart_products,totalprice,totalproducts);
-// req.user.getCart()
-//     .then(cart => {
-//         console.log("Cart:", cart);
-//         return cart.getProducts();
-//     })
-//     .then(products_cart => {
-//         // console.log("Products in cart:", products_cart);
-//         // let products = products_cart[0];
-//         // console.log("First product:", products);
-//         console.log(products_cart);
-//         let productlistHTML = "";
-//         products_cart.forEach(product => {
-//             quantity=product.cartitem.qty;
-//             productlistHTML += `
-//             <li>
-//                 <img src="${product.urlInput}" alt="${product.name}">
-//                 <h1>${product.name}</h1>
-//                 <p>${product.price} Rs</p> 
-//                 <p>qty : ${quantity}</p>
-//            </li>`;
-//         });
-//         const html = `
-//         <!DOCTYPE html>
-//         <html lang="en">
-//         <head>
-//             <meta charset="UTF-8">
-//             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-//             <title>Products list</title>
-//              <link rel="stylesheet" href="/navigation.css">
-//             <link rel="stylesheet" href="/productsstyles.css">
-//         </head>
-//         <body>
-//         <div class="main_header">
-//             <nav class="headers">
-//                 <a href="/twilight/home">Home</a>
-//                 <a href="/twilight/products">Products</a>
-//                 <a href="/twilight/add-product">Add Product</a>
-//                 <a href="/twilight/cart">My cart</a>
-//                 <a href="/twilight/orders">Orders</a>
-//                 <div class="carttotal">
+    //console.log("all cart products",cartProducts);
+    let productlistHTML = "";
+    cartProducts.forEach(product => {
+            console.log("in loop",product._id);
+            productlistHTML += `
+            <li>
+                <img src="${product.imageURL}" alt="${product.name}">
+                <h1>${product.name}</h1>
+                <p>${product.price} Rs</p> 
+                <p>qty : ${product.quantity}</p>
+           </li>`;
+        });
+        const html = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Products list</title>
+             <link rel="stylesheet" href="/navigation.css">
+            <link rel="stylesheet" href="/productsstyles.css">
+        </head>
+        <body>
+        <div class="main_header">
+            <nav class="headers">
+                <a href="/twilight/home">Home</a>
+                <a href="/twilight/products">Products</a>
+                <a href="/twilight/add-product">Add Product</a>
+                <a href="/twilight/cart">My cart</a>
+                <a href="/twilight/orders">Orders</a>
+                <div class="carttotal">
                 
-//                 </div>
-//             </nav>
-//         </div>
-//         <ul class="product-list">${productlistHTML}</ul>
-//         <a href='/twilight/add-product'>Go to add products</a>
-//         </body>
-//         </html>`;
+                </div>
+            </nav>
+        </div>
+        <ul class="product-list">${productlistHTML}</ul>
+        <a href='/twilight/add-product'>Go to add products</a>
+        </body>
+        </html>`;
     
-//         res.send(html);
-//     })
-//     .catch(err => console.log(err));  
-// }
+        res.send(html);
+  } catch (error) {
+    console.error('Error fetching cart products:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
 
 
 // //to go t the edit details page
@@ -265,7 +247,7 @@ exports.editdetailspage=(req,res,next)=>{
 exports.update_editedproduct=(req,res,next)=>{
     const{name,description,imageURL,price,id}=req.body;
     console.log(name,description,imageURL,price,id);
-    const product=new Product(name,price,description,imageURL,new ObjectId(id));
+    const product=new Product(name,price,description,imageURL,new ObjectId(id), req.session.userid);
     product.save()
     .then((result)=>{
         console.log("product updated");

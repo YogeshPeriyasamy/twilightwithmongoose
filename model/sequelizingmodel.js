@@ -2,13 +2,13 @@ const Mongodb=require('mongodb');
 const ObjectId= Mongodb.ObjectId;
 const {getdb}=require('../util/database');
 class Product{
-     constructor(name,price,description,imageURL,id){
+     constructor(name,price,description,imageURL,id,userid){
         this.name=name;
         this.price=price;
         this.description=description;
         this.imageURL=imageURL;
         this._id=id;
-        //this.userid=userid;
+        this.userid=userid;
      }
 
      //function to inset data into database
