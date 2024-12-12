@@ -1,11 +1,10 @@
  const path=require("path");
- 
-//creating a model routes
-const model_router=require('../model/product_model');
+ const mongodb=require("mongodb");
+ const ObjectId=mongodb.ObjectId;
 
 // connecting model page of sequel with the controller
-const sequel_model=require('../model/sequelizingmodel');
-const { where } = require("sequelize");
+const Product=require('../model/sequelizingmodel');
+// const { where } = require("sequelize");
 
 exports.gethome=(req,res,next)=>{
     res.sendFile(path.join(__dirname,'../view/home.html'));
@@ -19,16 +18,11 @@ exports.add_productform=(req,res,next)=>{
 
 //add product to backend
 exports.add_product=(req,res,next)=>{
-    const{name,description,urlInput,price}=req.body;
-    // model_router.add_product(name,description,urlInput,price).then(()=>{res.redirect('/twilight/products');})
-    // .catch(err=>console.log(err));
-    // sequel_model.create({
-    req.user.createProduct({    
-        name:name,
-        price:price,
-        description:description,
-        urlInput:urlInput
-    }).then(()=>res.redirect('/twilight/products'))
+    const{name,description,imageURL,price}=req.body;
+    //console.log(name,description,imageURL,price);
+    const product=new Product(name,price,description,imageURL)
+    product.save()
+    .then(()=>res.redirect('/twilight/products'))
     .catch((err)=>console.log(err))
     
 }
@@ -37,19 +31,18 @@ exports.add_product=(req,res,next)=>{
 
 exports.showproductlist = async(req, res, next) => {
     let productlistHTML = "";
-// model_router.getallproducts()
-await sequel_model.findAll()
+Product.fetchAll()
 .then(rows=>{
      const products = rows;
   
     products.forEach(product => {
         productlistHTML += `
         <li>
-            <img src="${product.urlInput}" alt="${product.name}">
+            <img src="${product.imageURL}" alt="${product.name}">
             <h1>${product.name}</h1>
             <p>${product.price} Rs</p> 
-            <a href="/twilight/product_deatils/${product.id}">Details</a>
-            <a href="/twilight/edit_product?editid=${product.id}">Edit product</a>
+            <a href="/twilight/product_deatils/${product._id}">Details</a>
+            <a href="/twilight/edit_product?editid=${product._id}">Edit product</a>
         </li>`;
     });
     
@@ -87,12 +80,12 @@ await sequel_model.findAll()
 };
 
 
-// to get to product details page
+// // to get to product details page
 exports.showproductdetails=async(req, res, next) =>{
-    // model_router.getproductbyid(req.params.id)
-    await sequel_model.findAll({where:{id:req.params.id}})
+    
+    Product.findbyid(req.params.id)
     .then(data=>{
-       let product=data[0];
+       let product=data
        //console.log("frrororonnrnnnbsbsb",product);
        if(product){
         const html=`
@@ -116,17 +109,17 @@ exports.showproductdetails=async(req, res, next) =>{
         </nav>
     </div>
     <div class="product_list">
-        <img src="${product.urlInput}" alt="${product.name}">
+        <img src="${product.imageURL}" alt="${product.name}">
         <h1><strong>Name:</strong>${product.name}</h1>
         <p><strong>Description:</strong>${product.description}</p> 
         <p><strong>Price:</strong>${product.price} Rs</p>
         <form action="/twilight/addtocart" method="post">
-            <input type="hidden" name="id" value="${product.id}">
-            <input type="hidden" name="urlInput" value="${product.urlInput}">
+            <input type="hidden" name="id" value="${product._id}">
+            <input type="hidden" name="urlInput" value="${product.imageURL}">
             <input type="hidden" name="price" value="${product.price}">
             <input type="hidden" name="name" value="${product.name}">
             <button class="btn"> Add to cart<button>
-            <button type="button" onclick="window.location.href='/twilight/delete_product/${product.id}'">Delete</button>
+            <button type="button" onclick="window.location.href='/twilight/delete_product/${product._id}'">Delete</button>
         </form>    
     </div>
     </body>
@@ -138,153 +131,144 @@ exports.showproductdetails=async(req, res, next) =>{
         res.status(404).send("page not found");
     }
     })
-    .catch(err=>console.log(err))
+    .catch(err=>console.log("fetching with id",err))
    
 }
 
 
-//create a path to the cartmodel
-// const cartmodel_router=require('../model/cartmodel');
+// //create a path to the cartmodel
+// // const cartmodel_router=require('../model/cartmodel');
 
-// to add cart product to the backend
-exports.add_cartproduct=(req,res,next)=>{
-    const{id,name,urlInput,price}=req.body;
+// // to add cart product to the backend
+// exports.add_cartproduct=(req,res,next)=>{
+//     const{id,name,urlInput,price}=req.body;
     
-    // cartmodel_router.add_cart(id,name,urlInput,price)
-    // .then(()=>res.redirect('/twilight/cart'))
-    // .catch(err=>console.log(err));
-    let fetchedcart;
-    let newqty;
-    req.user.getCart()
-    .then(cart => {
-        fetchedcart = cart;
-        return cart.getProducts({ where: { id: id } });
-    })
-    .then(products => {
-        let product;
-        if (products.length > 0) {
-            product = products[0];
-        }
-        if (product) {
-            // If the product exists, increase the quantity
-            let oldqty = product.cartitem.qty; 
-            console.log("oldqty :",oldqty);
-            newqty = oldqty + 1;
+//     // cartmodel_router.add_cart(id,name,urlInput,price)
+//     // .then(()=>res.redirect('/twilight/cart'))
+//     // .catch(err=>console.log(err));
+//     let fetchedcart;
+//     let newqty;
+//     req.user.getCart()
+//     .then(cart => {
+//         fetchedcart = cart;
+//         return cart.getProducts({ where: { id: id } });
+//     })
+//     .then(products => {
+//         let product;
+//         if (products.length > 0) {
+//             product = products[0];
+//         }
+//         if (product) {
+//             // If the product exists, increase the quantity
+//             let oldqty = product.cartitem.qty; 
+//             console.log("oldqty :",oldqty);
+//             newqty = oldqty + 1;
 
-            // Update the existing cart item quantity
-            // return fetchedcart.addProduct(product, { through: { qty: newqty } });
-            return product.cartitem.update({ qty: newqty });
-        } else {
-            // If the product does not exist in the cart, fetch it from the user products
-            return req.user.getProducts({ where: { id: id } });
-        }
-    })
-    .then(products => {
-        if (products) {
-            let product = products[0];
-            // Add the new product to the cart with a quantity of 1
-            return fetchedcart.addProduct(product, { through: { qty: 1 } });
-        }
-    })
-    .then(() => {
-        res.redirect('/twilight/cart');
-    })
-    .catch(err => console.log(err));
+//             // Update the existing cart item quantity
+//             // return fetchedcart.addProduct(product, { through: { qty: newqty } });
+//             return product.cartitem.update({ qty: newqty });
+//         } else {
+//             // If the product does not exist in the cart, fetch it from the user products
+//             return req.user.getProducts({ where: { id: id } });
+//         }
+//     })
+//     .then(products => {
+//         if (products) {
+//             let product = products[0];
+//             // Add the new product to the cart with a quantity of 1
+//             return fetchedcart.addProduct(product, { through: { qty: 1 } });
+//         }
+//     })
+//     .then(() => {
+//         res.redirect('/twilight/cart');
+//     })
+//     .catch(err => console.log(err));
 
-}
+// }
 
 
 
-// designing the cart page
-exports.cart_page=async(req,res,next)=>{
-//     const product=await cartmodel_router.getallproducts();
-//    console.log(product);
-//     let cart_products=product.cart_products;
-//     let totalprice=product.totalprice;
-//     let totalproducts=product.totalproducts;
-//     console.log(cart_products,totalprice,totalproducts);
-req.user.getCart()
-    .then(cart => {
-        console.log("Cart:", cart);
-        return cart.getProducts();
-    })
-    .then(products_cart => {
-        // console.log("Products in cart:", products_cart);
-        // let products = products_cart[0];
-        // console.log("First product:", products);
-        console.log(products_cart);
-        let productlistHTML = "";
-        products_cart.forEach(product => {
-            quantity=product.cartitem.qty;
-            productlistHTML += `
-            <li>
-                <img src="${product.urlInput}" alt="${product.name}">
-                <h1>${product.name}</h1>
-                <p>${product.price} Rs</p> 
-                <p>qty : ${quantity}</p>
-           </li>`;
-        });
-        const html = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Products list</title>
-             <link rel="stylesheet" href="/navigation.css">
-            <link rel="stylesheet" href="/productsstyles.css">
-        </head>
-        <body>
-        <div class="main_header">
-            <nav class="headers">
-                <a href="/twilight/home">Home</a>
-                <a href="/twilight/products">Products</a>
-                <a href="/twilight/add-product">Add Product</a>
-                <a href="/twilight/cart">My cart</a>
-                <a href="/twilight/orders">Orders</a>
-                <div class="carttotal">
+// // designing the cart page
+// exports.cart_page=async(req,res,next)=>{
+// //     const product=await cartmodel_router.getallproducts();
+// //    console.log(product);
+// //     let cart_products=product.cart_products;
+// //     let totalprice=product.totalprice;
+// //     let totalproducts=product.totalproducts;
+// //     console.log(cart_products,totalprice,totalproducts);
+// req.user.getCart()
+//     .then(cart => {
+//         console.log("Cart:", cart);
+//         return cart.getProducts();
+//     })
+//     .then(products_cart => {
+//         // console.log("Products in cart:", products_cart);
+//         // let products = products_cart[0];
+//         // console.log("First product:", products);
+//         console.log(products_cart);
+//         let productlistHTML = "";
+//         products_cart.forEach(product => {
+//             quantity=product.cartitem.qty;
+//             productlistHTML += `
+//             <li>
+//                 <img src="${product.urlInput}" alt="${product.name}">
+//                 <h1>${product.name}</h1>
+//                 <p>${product.price} Rs</p> 
+//                 <p>qty : ${quantity}</p>
+//            </li>`;
+//         });
+//         const html = `
+//         <!DOCTYPE html>
+//         <html lang="en">
+//         <head>
+//             <meta charset="UTF-8">
+//             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//             <title>Products list</title>
+//              <link rel="stylesheet" href="/navigation.css">
+//             <link rel="stylesheet" href="/productsstyles.css">
+//         </head>
+//         <body>
+//         <div class="main_header">
+//             <nav class="headers">
+//                 <a href="/twilight/home">Home</a>
+//                 <a href="/twilight/products">Products</a>
+//                 <a href="/twilight/add-product">Add Product</a>
+//                 <a href="/twilight/cart">My cart</a>
+//                 <a href="/twilight/orders">Orders</a>
+//                 <div class="carttotal">
                 
-                </div>
-            </nav>
-        </div>
-        <ul class="product-list">${productlistHTML}</ul>
-        <a href='/twilight/add-product'>Go to add products</a>
-        </body>
-        </html>`;
+//                 </div>
+//             </nav>
+//         </div>
+//         <ul class="product-list">${productlistHTML}</ul>
+//         <a href='/twilight/add-product'>Go to add products</a>
+//         </body>
+//         </html>`;
     
-        res.send(html);
-    })
-    .catch(err => console.log(err));  
-}
+//         res.send(html);
+//     })
+//     .catch(err => console.log(err));  
+// }
 
 
-//to go t the edit details page
+// //to go t the edit details page
 
 exports.editdetailspage=(req,res,next)=>{
-    // const toeditproduct=model_router.getproductbyid(req.params.editid);
-    // sequel_model.findAll({where:{id:req.params.editid}})
-    req.user.getProducts({where:{id:req.params.editid}})//to get the user product with the product id
-    .then(toeditproduct=> res.json(toeditproduct[0]))
+
+    Product.findbyid(req.params.editid)
+    .then(toeditproduct=> res.json(toeditproduct))
     .catch(err=>console.log(err));
    
 }
 
-// to update the edited product from the editproduct.html
+// // to update the edited product from the editproduct.html
 exports.update_editedproduct=(req,res,next)=>{
-    const{name,description,urlInput,price,id}=req.body;
-    console.log(name,description,urlInput,price,id);
-    // model_router.edit_product(name,description,urlInput,price,id)
-    sequel_model.findOne({where:{id:id}})
-    .then(product=>{
-        
-        product.name=name;
-        product.description=description;
-        product.urlInput=urlInput;
-        product.price=price;
-        product.id=id;
-        return product.save()
-    })
+    const{name,description,imageURL,price,id}=req.body;
+    console.log(name,description,imageURL,price,id);
+    const product=new Product(name,price,description,imageURL,new ObjectId(id));
+    product.save()
     .then((result)=>{
+        console.log("product updated");
         res.redirect('/twilight/products');
     })
     .catch(err=>console.log(err));
@@ -292,23 +276,13 @@ exports.update_editedproduct=(req,res,next)=>{
 }
 
 
-// to delete a product
+// // to delete a product
 exports.delete_product=(req,res,next)=>{
     const delete_id=req.params.deleteid;
-    // model_router.delete_product(delete_id);
-    // cartmodel_router.delete_product(delete_id);
-    // sequel_model.destroy({where:{id:delete_id}})
-    // .then(()=>res.redirect('/twilight/products'))
-    // .catch((err)=>consoele.log(err))
-    req.user.getProducts({where : {id:delete_id}})
-    .then(products=>{
-        if(products.length>0){
-            return products[0].destroy();
-        }
-        else{
-            res.redirect('/twilight/products')
-        }
-    })
-    .then(()=>res.redirect('/twilight/products'))
-    .catch(err=>console.log(err))
+    Product.deletebyid(delete_id)
+    .then(()=>{
+        console.log("its deleted");
+        res.redirect('/twilight/products');
+})
+    .catch(err=>console.log("frontend deleting product",err))
 }

@@ -13,8 +13,8 @@
         <input type="text" id="name" name="name">
         <label for="description">Description:</label>
         <textarea id="description" name="description"></textarea>
-        <label for="urlInput">Enter a URL:</label>
-        <input type="url" id="urlInput" name="urlInput">
+        <label for="imageURL">Enter a URL:</label>
+        <input type="url" id="imageURL" name="imageURL">
         <label for="price">Price:</label>
         <input type="text" id="price" name="price">
         <input type="hidden" id="id" name="id" value="">
@@ -33,9 +33,9 @@
             .then(data=>{
                 document.getElementById("name").value=data.name;
                 document.getElementById("description").value=data.description;
-                document.getElementById("urlInput").value=data.urlInput;
+                document.getElementById("imageURL").value=data.imageURL;
                 document.getElementById("price").value=data.price;
-                document.getElementById("id").value=data.id;
+                document.getElementById("id").value=data._id;
             }) 
             .catch(error => console.error('Error fetching product data:', error));
         }

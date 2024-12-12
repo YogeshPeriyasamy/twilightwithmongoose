@@ -13,4 +13,4 @@ const Cartitem=sequelize.define('cartitem',{
     }
    
 })
-module.exports=Cartitem;
+module.exports=Cartitem;  
