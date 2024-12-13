@@ -1,8 +1,8 @@
 const express = require("express");
-const http=require("http");
-console.log(http);
+
 const path = require("path");
-const {mongoconnect}=require('./util/database');
+//const {mongoconnect}=require('./util/database');
+const mongoose=require('mongoose');
 const app = express();
 const User=require('./model/sequelizeusermodel');
 const session=require('express-session');
@@ -30,9 +30,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(async (req, res, next) => {
     try {
-        let user = await User.findById('675a7a1dfa7fe799b083f531');
+        let user = await User.findById('675ba2148d8b769e77ea072b');
         if (!user) {
-            const usera = new User("viki", "viki@gmail.com",{items:[]},null);
+            const usera = new User({
+                name:"siva",
+                email:"siva@gmail.com",
+                cart:{
+                    items:[]
+                }
+            });
             user = await usera.save();
             console.log("New user created:", user);
         }
@@ -63,11 +69,29 @@ app.use("/twilight", router_path);
 
 
 
-mongoconnect(()=>{
+mongoose.connect('mongodb+srv://twilight:JWyekxCeYsAzdE6d@twilightcluster0.2juf0.mongodb.net/shop?retryWrites=true&w=majority&appName=twilightcluster0')
+.then(result=>{
    
     app.listen(3000,()=>{
-        console.log("server started");
+        console.log("database connected");
+        
     });
 })
+.catch(err=>{
+    console.log("error in database connection",err);
+})
+// Monitor connection status
+const db = mongoose.connection;
 
+db.on('connected', () => {
+    console.log('Mongoose: Database connected successfully.');
+});
+
+db.on('error', (err) => {
+    console.error('Mongoose: Connection error:', err);
+});
+
+db.on('disconnected', () => {
+    console.log('Mongoose: Database disconnected.');
+});
 

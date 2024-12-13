@@ -6,7 +6,7 @@
 // connecting model page of sequel with the controller
 const Product=require('../model/sequelizingmodel');
 const User=require('../model/sequelizeusermodel');
-// const { where } = require("sequelize");
+
 
 exports.gethome=(req,res,next)=>{
     res.sendFile(path.join(__dirname,'../view/home.html'));
@@ -22,8 +22,14 @@ exports.add_productform=(req,res,next)=>{
 exports.add_product=(req,res,next)=>{
     const{name,description,imageURL,price}=req.body;
     //console.log(name,description,imageURL,price);
-    console.log("checking req.user", req.session.userid);
-    const product=new Product(name,price,description,imageURL,null, req.session.userid)
+    // console.log("checking req.user", req.session.userid);
+    const product=new Product({
+        name:name,
+        price:price,
+        description:description,
+        imageURL:imageURL,
+        userId:req.session.userid,
+    })
     product.save()
     .then(()=>res.redirect('/twilight/products'))
     .catch((err)=>console.log(err))
@@ -34,7 +40,7 @@ exports.add_product=(req,res,next)=>{
 
 exports.showproductlist = async(req, res, next) => {
     let productlistHTML = "";
-Product.fetchAll()
+Product.find()//find() is a mongoose given method to fetch all products
 .then(rows=>{
      const products = rows;
   
@@ -83,10 +89,10 @@ Product.fetchAll()
 };
 
 
-// // to get to product details page
+// to get to product details page
 exports.showproductdetails=async(req, res, next) =>{
     
-    Product.findbyid(req.params.id)
+    Product.findById(req.params.id)//findById is a mongoose method the advantage is we dont need to convert the string to object id it do that for us
     .then(data=>{
        let product=data
        //console.log("frrororonnrnnnbsbsb",product);
@@ -143,10 +149,9 @@ exports.showproductdetails=async(req, res, next) =>{
 exports.add_cartproduct=async(req,res,next)=>{
     const{_id,name,urlInput,price}=req.body;
     console.log("product to cart",_id);
-    let user = await User.findById('675a7a1dfa7fe799b083f531');
+    let user = await User.findById('675ba2148d8b769e77ea072b');
     console.log("to cart add",user);
-    let newuserinstance=await new User(user.name,user.email,user.cart,user._id);
-    newuserinstance.addandupdatecart(_id)
+    user.addandupdatecart(_id)
     .then((result)=>{
         console.log("product added");
         res.redirect('/twilight/cart')
@@ -159,42 +164,27 @@ exports.add_cartproduct=async(req,res,next)=>{
 //Controller function to get cart products for a specific user
 exports.getCartProducts = async (req, res) => {
   try {
-    // const userId = req.params.userId; // Assume user ID is passed in the route parameter
+    const user = await User.findById('675ba2148d8b769e77ea072b').populate('cart.items.prodId'); // Populate prodId with product details
 
-    // Fetch the user with their cart details
-    const user = await User.findById('675a7a1dfa7fe799b083f531'); // Adjust if using a custom method for User
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const productIds = user.cart.items.map(item => item.prodId);
-
-    // Fetch the products that match the IDs
-    const db = require('../util/database').getdb();
-    const products = await db
-      .collection('products')
-      .find({ _id: { $in: productIds.map(id => new ObjectId(id)) } })
-      .toArray();
-
-    // Attach quantities to the products
-    const cartProducts = products.map(product => {
-      const cartItem = user.cart.items.find(item => item.prodId.toString() === product._id.toString());
-      return {
-        ...product,
-        quantity: cartItem.quantity,
-      };
-    });
-
-    //console.log("all cart products",cartProducts);
+    // Map the cart items to include product details and quantity
+    const cartProducts = user.cart.items.map(item => ({
+      product: item.prodId, // Populated product details
+      quantity: item.quantity, // Quantity from the cart
+    }));
+    console.log("all cart products",cartProducts);
     let productlistHTML = "";
-    cartProducts.forEach(product => {
-            console.log("in loop",product._id);
+    cartProducts.forEach(prod => {
+            console.log("in loop",prod.product._id);
             productlistHTML += `
             <li>
-                <img src="${product.imageURL}" alt="${product.name}">
-                <h1>${product.name}</h1>
-                <p>${product.price} Rs</p> 
-                <p>qty : ${product.quantity}</p>
+                <img src="${prod.product.imageURL}" alt="${prod.product.name}">
+                <h1>${prod.product.name}</h1>
+                <p>${prod.product.price} Rs</p> 
+                <p>qty : ${prod.quantity}</p>
            </li>`;
         });
         const html = `
@@ -233,22 +223,29 @@ exports.getCartProducts = async (req, res) => {
 };
 
 
-// //to go t the edit details page
+//to go t the edit details page
 
 exports.editdetailspage=(req,res,next)=>{
 
-    Product.findbyid(req.params.editid)
+    Product.findById(req.params.editid)
     .then(toeditproduct=> res.json(toeditproduct))
     .catch(err=>console.log(err));
    
 }
 
-// // to update the edited product from the editproduct.html
+// to update the edited product from the editproduct.html
 exports.update_editedproduct=(req,res,next)=>{
     const{name,description,imageURL,price,id}=req.body;
     console.log(name,description,imageURL,price,id);
-    const product=new Product(name,price,description,imageURL,new ObjectId(id), req.session.userid);
-    product.save()
+    Product.findById(id)
+    .then((product)=>{
+        product.name=name;
+        product.description=description;
+        product.price=price;
+        product.imageURL=imageURL;
+        product.userId=req.session.userid;
+        return product.save()
+    })
     .then((result)=>{
         console.log("product updated");
         res.redirect('/twilight/products');
@@ -258,10 +255,10 @@ exports.update_editedproduct=(req,res,next)=>{
 }
 
 
-// // to delete a product
+// to delete a product
 exports.delete_product=(req,res,next)=>{
     const delete_id=req.params.deleteid;
-    Product.deletebyid(delete_id)
+    Product.findByIdAndDelete(delete_id)//method to delete a object
     .then(()=>{
         console.log("its deleted");
         res.redirect('/twilight/products');
