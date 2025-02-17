@@ -149,7 +149,7 @@ exports.showproductdetails=async(req, res, next) =>{
 exports.add_cartproduct=async(req,res,next)=>{
     const{_id,name,urlInput,price}=req.body;
     console.log("product to cart",_id);
-    let user = await User.findById('675ba2148d8b769e77ea072b');
+    let user = await User.findById(process.env.User_Id);
     console.log("to cart add",user);
     user.addandupdatecart(_id)
     .then((result)=>{
@@ -164,7 +164,7 @@ exports.add_cartproduct=async(req,res,next)=>{
 //Controller function to get cart products for a specific user
 exports.getCartProducts = async (req, res) => {
   try {
-    const user = await User.findById('675ba2148d8b769e77ea072b').populate('cart.items.prodId'); // Populate prodId with product details
+    const user = await User.findById(process.env.User_Id).populate('cart.items.prodId'); // Populate prodId with product details
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -255,13 +255,27 @@ exports.update_editedproduct=(req,res,next)=>{
 }
 
 
-// to delete a product
-exports.delete_product=(req,res,next)=>{
-    const delete_id=req.params.deleteid;
-    Product.findByIdAndDelete(delete_id)//method to delete a object
-    .then(()=>{
-        console.log("its deleted");
+
+
+exports.delete_product = async (req, res, next) => {
+    const delete_id = req.params.deleteid;
+    try {
+        // Find and delete the product
+        const deletedProduct = await Product.findByIdAndDelete(delete_id);
+        if (!deletedProduct) {
+            return res.status(404).send('Product not found');
+        }
+
+        // Update all user carts to remove the product
+        await User.updateMany(
+            { 'cart.items.prodId': delete_id },
+            { $pull: { 'cart.items': { prodId: delete_id } } }
+        );
+
+        console.log("Product and associated cart items deleted");
         res.redirect('/twilight/products');
-})
-    .catch(err=>console.log("frontend deleting product",err))
-}
+    } catch (err) {
+        console.error("Error deleting product or updating carts:", err);
+        res.status(500).send('Internal Server Error');
+    }
+};

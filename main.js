@@ -6,7 +6,7 @@ const mongoose=require('mongoose');
 const app = express();
 const User=require('./model/sequelizeusermodel');
 const session=require('express-session');
-
+require('dotenv').config({ path: './util/.env' });
 
 app.use(session({
     secret: "loginkey",
@@ -30,7 +30,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(async (req, res, next) => {
     try {
-        let user = await User.findById('675ba2148d8b769e77ea072b');
+        let user = await User.findById('6763ba5346bff5a1f92e86d6');
         if (!user) {
             const usera = new User({
                 name:"siva",
@@ -69,7 +69,7 @@ app.use("/twilight", router_path);
 
 
 
-mongoose.connect('mongodb+srv://twilight:JWyekxCeYsAzdE6d@twilightcluster0.2juf0.mongodb.net/shop?retryWrites=true&w=majority&appName=twilightcluster0')
+mongoose.connect(process.env.MongoConnect)
 .then(result=>{
    
     app.listen(3000,()=>{
