@@ -30,7 +30,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(async (req, res, next) => {
     try {
-        let user = await User.findById('6763ba5346bff5a1f92e86d6');
+        let user = await User.findById(process.env.User_Id);
         if (!user) {
             const usera = new User({
                 name:"siva",
